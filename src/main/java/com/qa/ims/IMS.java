@@ -39,7 +39,7 @@ public class IMS {
 		String password = utils.getString();
 
 		DBUtils.connect(username, password);
-		Domain domain = null;
+		Domain domain;
 		do {
 			LOGGER.info("Which entity would you like to use?");
 			Domain.printDomains();
@@ -94,7 +94,7 @@ public class IMS {
 			crudController.delete();
 			break;
 		case RETURN:
-			break;
+			return;
 		default:
 			break;
 		}
