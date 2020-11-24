@@ -19,7 +19,7 @@ public class DBUtils {
 
 	private final String DB_PASS;
 
-	private final String DB_URL = "jdbc:mysql://localhost:3306/ims";
+	private final String DB_URL = System.getenv("DB_URL");
 
 	private DBUtils(String username, String password) {
 		this.DB_USER = username;
@@ -44,7 +44,7 @@ public class DBUtils {
 
 	public int executeSQLFile(String file) {
 		int modified = 0;
-		try (Connection connection = this.getConnection();
+		try (Connection connection = this.initDB();
 				BufferedReader br = new BufferedReader(new FileReader(file));) {
 			String fileAsString = br.lines().reduce((acc, next) -> acc + next).orElse("");
 			String[] queries = fileAsString.split(";");
@@ -62,8 +62,13 @@ public class DBUtils {
 		return modified;
 	}
 
-	public Connection getConnection() throws SQLException {
+	public Connection initDB() throws SQLException {
 		return DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+	}
+
+	public Connection getConnection() throws SQLException {
+		String DB_NAME = "ims";
+		return DriverManager.getConnection(DB_URL + DB_NAME, DB_USER, DB_PASS);
 	}
 
 	public static DBUtils instance;
