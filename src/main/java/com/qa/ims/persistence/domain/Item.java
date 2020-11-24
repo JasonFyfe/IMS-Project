@@ -1,5 +1,7 @@
 package com.qa.ims.persistence.domain;
 
+// todo Ensure that Item.price is using the same decimal format as what is stored in the database
+
 public class Item
 {
     private Long id;
@@ -47,6 +49,12 @@ public class Item
     public void setPrice(Double price)
     {
         this.price = price;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "id:" + id + " name:" + name + " price:" + price;
     }
 
     @Override
