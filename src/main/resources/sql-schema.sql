@@ -1,5 +1,6 @@
-DROP SCHEMA IF EXISTS ims;
+DROP SCHEMA ims;
 CREATE SCHEMA IF NOT EXISTS `ims`;
+
 USE `ims` ;
 
 CREATE TABLE IF NOT EXISTS `ims`.`customers` (
