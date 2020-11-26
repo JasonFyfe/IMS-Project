@@ -22,9 +22,8 @@ CREATE TABLE IF NOT EXISTS `ims`.`orders` (
     FOREIGN KEY (`customerID`) REFERENCES customers(id)
 );
 CREATE TABLE IF NOT EXISTS `ims`.`order_items` (
-    `itemID` INT NOT NULL,
-    `orderID` INT NOT NULL,
-    `quantity` INT(11) NOT NULL,
-    FOREIGN KEY (`itemID`) REFERENCES items(id),
-    FOREIGN KEY (`orderID`) REFERENCES orders(id)
+    `orderID` INT,
+    `itemID` INT,
+    FOREIGN KEY (`orderID`) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (`itemID`) REFERENCES items(id) ON DELETE CASCADE
 );

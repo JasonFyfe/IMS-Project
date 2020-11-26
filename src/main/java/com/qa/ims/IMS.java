@@ -29,7 +29,7 @@ public class IMS {
 		this.items = new ItemController(itemDAO, utils);
 
 		final OrderDAO orderDAO = new OrderDAO();
-		this.orders = new OrderController(orderDAO, utils);
+		this.orders = new OrderController(orderDAO, itemDAO, utils);
 	}
 
 	public void imsSystem() {
@@ -41,7 +41,7 @@ public class IMS {
 		DBUtils.connect(username, password);
 		Domain domain;
 		do {
-			LOGGER.info("Which entity would you like to use?");
+			LOGGER.info("\nWhich entity would you like to use?");
 			Domain.printDomains();
 
 			domain = Domain.getDomain(utils);
@@ -65,7 +65,7 @@ public class IMS {
 					break;
 				}
 
-				LOGGER.info("What would you like to do with " + domain.name().toLowerCase() + ":");
+				LOGGER.info("\nWhat would you like to do with " + domain.name().toLowerCase() + ":");
 
 				Action.printActions();
 				Action action = Action.getAction(utils);

@@ -1,86 +1,138 @@
 package com.qa.ims.persistence.dao;
 
+import com.qa.ims.persistence.domain.Item;
 import com.qa.ims.persistence.domain.Order;
 import com.qa.ims.utils.DBUtils;
 import com.qa.ims.utils.Utils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class OrderDAO implements Dao<Order>
 {
     public static final Logger LOGGER = LogManager.getLogger();
+    private ItemDAO itemDAO = new ItemDAO();
     private Utils utils = new Utils();
+    private HashMap<Long, Long> orderMap = new HashMap<>();
 
-    // todo Fix SQL query to combine data from required tables
     @Override
     public List<Order> readAll()
     {
-        try (Connection connection = DBUtils.getInstance().getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery("select * from orders"))
+        List<Order> allOrders = new ArrayList<>();
+        String ordersSQL = "SELECT * FROM orders";
+        String itemsSQL = "SELECT items.* FROM order_items LEFT JOIN items ON order_items.itemID = items.id WHERE orderID = ";
+
+        // get all orderID and customerID
+        try (Connection connection = DBUtils.getInstance().getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(ordersSQL))
         {
-            List<Order> orders = new ArrayList<>();
-            while (resultSet.next())
+            while(resultSet.next())
             {
-                orders.add(modelFromResultSet(resultSet));
+                appendToOrderMap(resultSet);
             }
-            return orders;
         }
         catch (SQLException e)
         {
             LOGGER.debug(e);
             LOGGER.error(e.getMessage());
         }
-        return new ArrayList<>();
+
+        // get all items for each order
+        orderMap.forEach((orderID, customerID) -> {
+            List<Item> allItems = new ArrayList<>();
+
+            try (Connection connection = DBUtils.getInstance().getConnection();
+                 Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(itemsSQL + orderID))
+            {
+                while(resultSet.next())
+                {
+                    allItems.add(modelItemFromResultSet(resultSet));
+                }
+            }
+            catch (SQLException e)
+            {
+                LOGGER.debug(e);
+                LOGGER.error(e.getMessage());
+            }
+
+            allOrders.add(new Order(orderID, customerID, allItems));
+        });
+
+        orderMap.clear();
+        return allOrders;
     }
 
     public Order readLatest()
     {
-        try (Connection connection = DBUtils.getInstance().getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery("SELECT * FROM orders ORDER BY id DESC LIMIT 1"))
+        Long orderID;
+        Long customerID;
+        List<Item> orderItems = new ArrayList<>();
+        String itemsSQL = "SELECT items.* FROM order_items LEFT JOIN items ON order_items.itemID = items.id WHERE orderID = ";
+
+        try (Connection connection = DBUtils.getInstance().getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT id AS orderID, customerID FROM orders ORDER BY id DESC LIMIT 1"))
         {
             resultSet.next();
-            return modelFromResultSet(resultSet);
+            appendToOrderMap(resultSet);
         }
         catch (Exception e)
         {
             LOGGER.debug(e);
             LOGGER.error(e.getMessage());
         }
-        return null;
+
+        orderMap.forEach((order, customer) -> {
+            try (Connection connection = DBUtils.getInstance().getConnection();
+                 Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery(itemsSQL + order))
+            {
+                while(resultSet.next())
+                {
+                    orderItems.add(modelItemFromResultSet(resultSet));
+                }
+            }
+            catch (SQLException e)
+            {
+                LOGGER.debug(e);
+                LOGGER.error(e.getMessage());
+            }
+        });
+
+        orderID = (Long) orderMap.keySet().toArray()[0];
+        customerID = orderMap.get(orderID);
+
+        orderMap.clear();
+        return new Order(orderID, customerID, orderItems);
     }
 
     @Override
     public Order create(Order order)
     {
-        try (Connection connection = DBUtils.getInstance().getConnection(); Statement statement = connection.createStatement())
+        try (Connection connection = DBUtils.getInstance().getConnection();
+             Statement statement = connection.createStatement())
         {
+            List<Item> orderItems = order.getOrderItems();
             statement.executeUpdate("INSERT INTO orders(customerID) values('" + order.getCustomerID() + "')");
             Order currentOrder = readLatest();
 
-            boolean addNewItem = false;
-            do
-            {
-                LOGGER.info("Please enter the item ID to add to the order");
-                Long itemID = utils.getLong();
-                LOGGER.info("How many of these are being added to the order");
-                int itemQuantity = Integer.parseInt(utils.getString());
-
-                String orderItems = String.format("INSERT INTO order_items(itemID, orderID, quantity) VALUES (%d, %d, %d)", itemID, currentOrder.getId(), itemQuantity);
-                statement.executeUpdate(orderItems);
-
-                LOGGER.info("Add another item?");
-                LOGGER.info("Yes or No");
-                String choice = utils.getString();
-
-                addNewItem = choice.toLowerCase().equals("yes");
-            }
-            while (addNewItem);
-
+            orderItems.forEach(item -> {
+                String sql = String.format("INSERT INTO order_items(orderID, itemID) VALUES (%d, %d)", currentOrder.getId(), item.getId());
+                try
+                {
+                    statement.executeUpdate(sql);
+                }
+                catch (SQLException e)
+                {
+                    e.printStackTrace();
+                }
+            });
             return currentOrder;
         }
         catch (Exception e)
@@ -91,51 +143,81 @@ public class OrderDAO implements Dao<Order>
         return null;
     }
 
+    // Read a specific order by a given orderID - called from OrderController.update()
     public Order readOrder(Long id)
     {
-        // todo refactor readOrder()
-        // join of tables
-        // select id and customerID from orders
-        // select itemID and quantity from order_items where orderID
-        // for each item select price from items where itemID
-        try (Connection connection = DBUtils.getInstance().getConnection(); Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery("SELECT * FROM orders where id = " + id))
+        Long customerID = null;
+        List<Item> orderItems = new ArrayList<>();
+
+        String sql = "SELECT customerID FROM orders WHERE id = " + id;
+        try (Connection connection = DBUtils.getInstance().getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql))
         {
             resultSet.next();
-            return modelFromResultSet(resultSet);
+            customerID = resultSet.getLong("customerID");
         }
         catch (Exception e)
         {
             LOGGER.debug(e);
             LOGGER.error(e.getMessage());
         }
-        return null;
+
+        sql = "SELECT items.* FROM order_items LEFT JOIN items ON order_items.itemID = items.id WHERE orderID = " + id;
+        try (Connection connection = DBUtils.getInstance().getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql))
+        {
+            while(resultSet.next())
+            {
+                orderItems.add(modelItemFromResultSet(resultSet));
+            }
+        }
+        catch (Exception e)
+        {
+            LOGGER.debug(e);
+            LOGGER.error(e.getMessage());
+        }
+        return new Order(id, customerID, orderItems);
     }
 
     @Override
     public Order update(Order order)
     {
-
-        // todo refactor OrderDAO.update
+        order.getOrderItems();
         try (Connection connection = DBUtils.getInstance().getConnection(); Statement statement = connection.createStatement())
         {
-            statement.executeUpdate("update orders set customerID ='" + order.getCustomerID() + "' where id =" + order.getId());
-            return readOrder(order.getId());
+            statement.executeUpdate("DELETE FROM order_items WHERE orderID = " + order.getId());
         }
         catch (Exception e)
         {
             LOGGER.debug(e);
             LOGGER.error(e.getMessage());
         }
+
+        try (Connection connection = DBUtils.getInstance().getConnection(); Statement statement = connection.createStatement())
+        {
+            for (Item i : order.getOrderItems())
+            {
+                statement.executeUpdate("INSERT INTO order_items(orderID, itemID) VALUES (" + order.getId() + ", " + i.getId() + ")");
+            }
+
+        }
+        catch (Exception e)
+        {
+            LOGGER.debug(e);
+            LOGGER.error(e.getMessage());
+        }
+
         return null;
     }
 
     @Override
     public int delete(long id)
     {
-        // todo refactor OrderDAO to recursively delete data from order_items table
         try (Connection connection = DBUtils.getInstance().getConnection(); Statement statement = connection.createStatement())
         {
-            return statement.executeUpdate("delete from orders where id = " + id);
+            return statement.executeUpdate("DELETE FROM orders WHERE id = " + id);
         }
         catch (Exception e)
         {
@@ -148,9 +230,22 @@ public class OrderDAO implements Dao<Order>
     @Override
     public Order modelFromResultSet(ResultSet resultSet) throws SQLException
     {
-        // todo refactor OrderDAO model from SQL
-        Long id = resultSet.getLong("id");
+        Long id = resultSet.getLong("orderID");
         Long customerID = resultSet.getLong("customerID");
-        return new Order(id, customerID);
+        List<Item> items = new ItemDAO().readAll();
+
+        return new Order(id, customerID, items);
+    }
+
+    public void appendToOrderMap(ResultSet resultSet) throws SQLException
+    {
+        Long orderID = resultSet.getLong("id");
+        Long customerID = resultSet.getLong("customerID");
+        orderMap.put(orderID, customerID);
+    }
+
+    public Item modelItemFromResultSet(ResultSet resultSet) throws SQLException
+    {
+        return itemDAO.modelFromResultSet(resultSet);
     }
 }
