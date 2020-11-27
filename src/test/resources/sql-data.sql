@@ -1,1 +1,16 @@
 INSERT INTO `ims`.`customers` (`first_name`, `surname`) VALUES ('jordan', 'harrison');
+INSERT INTO `ims`.`customers` (`first_name`, `surname`) VALUES ('jason', 'fyfe');
+INSERT INTO `ims`.`customers` (`first_name`, `surname`) VALUES ('steven', 'smith');
+INSERT INTO `ims`.`items` (`name`, `price`) VALUES ('xbox', '299.99');
+INSERT INTO `ims`.`items` (`name`, `price`) VALUES ('ps5', '399.99');
+INSERT INTO `ims`.`items` (`name`, `price`) VALUES ('switch', '199.99');
+INSERT INTO `ims`.`orders` (`customerID`) VALUE (1);
+INSERT INTO `ims`.`orders` (`customerID`) VALUE (2);
+INSERT INTO `ims`.`orders` (`customerID`) VALUE (2);
+INSERT INTO `ims`.`order_items` (`orderID`, `itemID`) VALUES (1, 1);
+INSERT INTO `ims`.`order_items` (`orderID`, `itemID`) VALUES (2, 2);
+INSERT INTO `ims`.`order_items` (`orderID`, `itemID`) VALUES (2, 1);
+INSERT INTO `ims`.`order_items` (`orderID`, `itemID`) VALUES (2, 1);
+INSERT INTO `ims`.`order_items` (`orderID`, `itemID`) VALUES (3, 3);
+INSERT INTO `ims`.`order_items` (`orderID`, `itemID`) VALUES (3, 1);
+INSERT INTO `ims`.`order_items` (`orderID`, `itemID`) VALUES (3, 2);

@@ -1,64 +1,69 @@
 package com.qa.ims.persistence.dao;
 
-import static org.junit.Assert.assertEquals;
+import com.qa.ims.persistence.domain.Customer;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
-import com.qa.ims.persistence.domain.Customer;
-import com.qa.ims.utils.DBUtils;
+@RunWith(MockitoJUnitRunner.class)
+public class CustomerDAOTest
+{
 
-public class CustomerDAOTest {
+    @Mock
+    private ResultSet resultSet;
 
-	private final CustomerDAO DAO = new CustomerDAO();
+    @InjectMocks
+    private CustomerDAO dao;
 
-	@BeforeClass
-	public static void init() {
-		DBUtils.connect("root", "pass");
-	}
+    @Test
+    public void modelFromResultSet() throws SQLException
+    {
+        Customer customer = new Customer(1L, "jason", "fyfe");
+        Mockito.when(resultSet.getLong("id")).thenReturn(customer.getId());
+        Mockito.when(resultSet.getString("first_name")).thenReturn(customer.getFirstName());
+        Mockito.when(resultSet.getString("surname")).thenReturn(customer.getSurname());
 
-	@Before
-	public void setup() {
-		DBUtils.getInstance().init("src/test/resources/sql-schema.sql", "src/test/resources/sql-data.sql");
-	}
+        assertEquals(customer, dao.modelFromResultSet(resultSet));
+    }
 
-	@Test
-	public void testCreate() {
-		final Customer created = new Customer(2L, "chris", "perrins");
-		assertEquals(created, DAO.create(created));
-	}
+    @Test
+    public void readAll()
+    {
+        assertNotNull(dao.readAll());
+    }
 
-	@Test
-	public void testReadAll() {
-		List<Customer> expected = new ArrayList<>();
-		expected.add(new Customer(1L, "jordan", "harrison"));
-		assertEquals(expected, DAO.readAll());
-	}
+    @Test
+    public void readLatest()
+    {
+    }
 
-	@Test
-	public void testReadLatest() {
-		assertEquals(new Customer(1L, "jordan", "harrison"), DAO.readLatest());
-	}
+    @Test
+    public void create()
+    {
+    }
 
-	@Test
-	public void testRead() {
-		final long ID = 1L;
-		assertEquals(new Customer(ID, "jordan", "harrison"), DAO.readCustomer(ID));
-	}
+    @Test
+    public void readCustomer()
+    {
+    }
 
-	@Test
-	public void testUpdate() {
-		final Customer updated = new Customer(1L, "chris", "perrins");
-		assertEquals(updated, DAO.update(updated));
+    @Test
+    public void update()
+    {
+    }
 
-	}
-
-	@Test
-	public void testDelete() {
-		assertEquals(1, DAO.delete(1));
-	}
+    @Test
+    public void delete()
+    {
+    }
 }
