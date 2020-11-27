@@ -19,7 +19,7 @@ public class DBUtils {
 
 	private final String DB_PASS;
 
-	private final String DB_URL = System.getenv("DB_URL");
+	private final String DB_URL = "jdbc:mysql://localhost/ims";
 
 	private DBUtils(String username, String password) {
 		this.DB_USER = username;
@@ -67,8 +67,7 @@ public class DBUtils {
 	}
 
 	public Connection getConnection() throws SQLException {
-		String DB_NAME = "ims";
-		return DriverManager.getConnection(DB_URL + DB_NAME, DB_USER, DB_PASS);
+		return DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
 	}
 
 	public static DBUtils instance;
